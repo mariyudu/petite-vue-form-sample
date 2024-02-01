@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>petite-vue 問い合わせフォーム サンプル</title>
+  <style>
+    <!-- 未レンダリング状態を表示させないおまじない -->
+    [v-cloak] { display: none; }
+  </style>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body v-cloak>
+
+  <div id="app" class="flex justify-center items-start w-full min-h-screen bg-gray-100">
+    <div class="w-full sm:w-10/12 md:w-8/12 lg:w-6/12 xl:w-5/12 2xl:w-4/12 bg-white rounded shadow p-8 m-4" v-scope="Main()"></div>
+  </div>
+
+  <template id="main-tmpl">
+    <h1 class="block w-full text-center text-gray-800 text-xl font-bold mb-6">
+      petite-vue 問い合わせフォーム サンプル
+    </h1>
+    <template v-if="store.phase == 'form'">
+      <div v-scope="Form()"></div>
+    </template> 
+    <template v-if="store.phase == 'confirm'">
+      <div v-scope="Confirm()"></div>
+    </template> 
+    <template v-if="store.phase == 'thanks'">
+      <div v-scope="Thanks()"></div>
+    </template> 
+  </template>
+
+  <!-- フォームページ -->
+  <template id="form-tmpl">
+    <form @submit.prevent>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: 'お名前' })"></span>
+        <span v-scope="FormText({ item: 'name' })"></span>
+      </div>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: 'メールアドレス' })"></span>
+        <span v-scope="FormText({ item: 'email' })"></span>
+      </div>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: 'お問い合わせ種別' })"></span>
+        <span v-scope="FormSelect({ item: 'category', options: ['製品について', '技術的な質問', 'その他'] })"></span>
+      </div>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: 'お問い合わせ内容' })"></span>
+        <span v-scope="FormText({ item: 'question', 'textarea': true })"></span>
+      </div>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: '個人情報の取り扱いについて' })"></span>
+        <div v-scope="Toggle({...toggleProps, onChange: onChangeToggle, checked: toggleChecked })"></div>
+      </div>
+      <div class="flex justify-center items-center gap-4">
+        <button type="button"
+          class="block bg-blue-700 hover:bg-blue-800 disabled:bg-blue-100 text-white uppercase text-md py-2 px-4 rounded"
+          :disabled="!store.form.privacy"
+          @click="store.confirm"
+        >確認</button>
+      </div>
+    </form>
+  </template>
+
+  <!-- 確認ページ -->
+  <template id="confirm-tmpl">
+    <form>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: 'お名前' })"></span>
+        <span v-scope="ConfirmItem({ value: store.form.name, errorMessage: store.validateErros.name })"></span>
+      </div>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: 'メールアドレス' })"></span>
+        <span v-scope="ConfirmItem({ value: store.form.email, errorMessage: store.validateErros.email })"></span>
+      </div>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: 'お問い合わせ種別' })"></span>
+        <span v-scope="ConfirmItem({ value: store.form.category, errorMessage: store.validateErros.category })"></span>
+      </div>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: 'お問い合わせ内容' })"></span>
+        <span v-scope="ConfirmItem({ value: store.form.question, errorMessage: store.validateErros.question })"></span>
+      </div>
+      <div class="flex flex-col mb-4">
+        <span v-scope="FormLabel({ label: '個人情報の取り扱いについて' })"></span>
+        <span v-scope="ConfirmItem({ value: '個人情報の取扱いに同意する' })"></span>
+      </div>
+      <div class="flex justify-center items-center gap-4">
+        <button type="button"
+          class="block bg-white border border-gray-200 hover:bg-gray-100 hover:text-blue-700 text-gray-900 text-md py-2 px-4 rounded"
+          @click="store.back"
+        >戻る</button>
+        <button type="button"
+          class="block bg-blue-700 hover:bg-blue-800 disabled:bg-blue-100 text-white text-md py-2 px-4 rounded"
+          :disabled="validateErrorCount() > 0"
+          @click="store.submit"
+        >送信</button>
+      </div>
+    </form>
+  </template>
+
+  <!-- 送信ページ -->
+  <template id="thanks-tmpl">
+    <div class="grid justify-items-center my-4 text-lg">
+      お問い合わせ頂きありがとうございます！
+    </div>
+    <div class="grid justify-items-center">
+      <template v-if="store.submitting.status == 'sending'">
+        <svg class="w-32 h-32 fill-gray-400" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="4" cy="12" r="3"><animate id="a" begin="0;b.end-0.25s" attributeName="r" dur="0.75s" values="3;.2;3"/></circle><circle cx="12" cy="12" r="3"><animate begin="a.end-0.6s" attributeName="r" dur="0.75s" values="3;.2;3"/></circle><circle cx="20" cy="12" r="3"><animate id="b" begin="a.end-0.45s" attributeName="r" dur="0.75s" values="3;.2;3"/></circle></svg>
+        <div class="mt-4">データを送信しています...</div>
+      </template>
+      <template v-if="store.submitting.status != 'sending'">
+        <svg class="w-32 h-32" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" enable-background="new 0 0 64 64"><path d="M32,2C15.431,2,2,15.432,2,32c0,16.568,13.432,30,30,30c16.568,0,30-13.432,30-30C62,15.432,48.568,2,32,2z M25.025,50l-0.02-0.02L24.988,50L11,35.6l7.029-7.164l6.977,7.184l21-21.619L53,21.199L25.025,50z" fill="#43a047"/></svg>
+        <div class="mt-4">お問い合わせがチケット番号 {{ store.submitting.ticketId }} で受理されました。3営業日以内にメールにて回答いたします。しばらくお待ち下さい。</div>
+      </template>
+    </div>
+  </template>
+
+  <!-- フォームの項目名 -->
+  <template id="form-label-tmpl">
+    <label class="block mb-2 text-md text-gray-700 font-bold tracking-wide">{{ label }}</label>
+  </template>
+
+  <!-- フォームのテキストボックス -->
+  <template id="form-text-tmpl">
+    <input type="text"
+      class="w-full border py-2 px-3 text-grey-800"
+      placeholder="省略できません"
+      v-model="value" @change="onChange"
+    />
+  </template>
+
+  <!-- フォームの複数行テキストボックス -->
+  <template id="form-textarea-tmpl">
+    <textarea rows="5"
+      class="w-full border py-2 px-3 text-grey-800"
+      placeholder="省略できません"
+      v-model="value" @change="onChange"
+    ></textarea>
+  </template>
+
+  <!-- フォームのドロップダウンリスト -->
+  <template id="form-select-tmpl">
+    <div class="relative inline-block w-full">
+      <select 
+        class="block appearance-none w-full bg-white border border-gray-200 text-gray-700 py-3 px-4 pr-8 rounded leading-tight"
+        v-model="value" @change="onChange"
+      >
+        <option selected disabled="disabled" value="">選択してください</option>
+        <option v-for="opt in options" :value="opt">{{ opt }}</li>
+      </select>
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500">
+        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+      </div>
+    </div>
+  </template>
+
+  <!-- トグルスイッチ -->
+  <template id="toggle-tmpl">
+    <label :for="id" class="flex items-center cursor-pointer">
+      <input :id="id" type="checkbox" class="peer sr-only" :checked="checked()" @change="onChange" />
+      <span class="block w-[2em] cursor-pointer bg-gray-500 rounded-full 
+        p-[1px] after:block after:h-[1em] after:w-[1em] after:rounded-full 
+        after:bg-white after:transition peer-checked:bg-blue-500 
+        peer-checked:after:translate-x-[calc(100%-2px)] mr-2"></span>
+        {{ label }}
+    </label>
+  </template>
+
+  <!-- 確認項目 -->
+  <template id="confirm-item-tmpl">
+    <div v-if="!errorMessage"
+      class="bg-teal-100 border border-teal-500 text-teal-900 px-4 py-3 rounded relative" role="info"
+    >
+      <span class="block sm:inline">{{ value }}</span>
+    </div>
+    <div v-if="errorMessage"
+      class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert"
+    >
+      <span class="block sm:inline">{{ errorMessage }}</span>
+    </div>
+  </template>
+
+  <script src="script.js" type="module"></script>
+</body>
+</html>
