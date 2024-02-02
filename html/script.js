@@ -35,7 +35,7 @@ const store = reactive({
     this.phase = 'thanks'
     this.submitting.status = 'sending'
     // データを API 経由で保存
-    const res = await fetch('/api.php', {
+    const res = await fetch('api.php', {
       method: 'POST',
       body: JSON.stringify(this.form),
     })
